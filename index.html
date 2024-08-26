@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Speech Recognition Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <div class="dashboard">
+    <img src="Wave Sound.gif" alt="Car Dashboard" class="dashboard-gif">
+  </div>
+
+  <button onclick="startRecognition()">Start Speech Recognition</button>
+  <div id="Reco" style="color: white;">
+  </div>
+  <div id="text-to-speech">
+    <button id="speak-button">Speak</button>
+  </div>
+
+  <script>
+    function startRecognition() {
+      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      recognition.lang = 'en-US';
+      recognition.interimResults = false;
+
+      recognition.onstart = function () {
+        console.log('Speech recognition started');
+      };
+
+      recognition.onspeechend = function () {
+        recognition.stop();
+      };
+
+      recognition.onresult = function (event) {
+        const transcript = event.results[0][0].transcript;
+        console.log('You said: ', transcript);
+        l = document.getElementById("Reco").innerHTML
+        document.getElementById("Reco").innerHTML = l + "<br>" + "<p>" + transcript + "</p>";
+        // Send the recognized speech to the backend
+
+        let speakButton = document.getElementById("speak-button");
+
+        // Add an event listener to the speak button
+        speakButton.addEventListener("click", function () {
+          // Get the text from the text area
+          let text = transcript;
+
+          // Create a new SpeechSynthesisUtterance object
+          let utterance = new SpeechSynthesisUtterance();
+
+          // Set the text and voice of the utterance
+          utterance.text = text;
+          utterance.voice = window.speechSynthesis.getVoices()[0];
+
+          // Speak the utterance
+          window.speechSynthesis.speak(utterance);
+        });
+        fetch('/process_speech', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ speech: transcript })
+        })
+          .then(response => response.json())
+          .then(data => {
+            console.log('Response from server:', data);
+          })
+          .catch(error => {
+            console.error('Error:', error);
+          });
+      };
+
+      recognition.onerror = function (event) {
+        console.error('Speech recognition error:', event.error);
+      };
+
+      recognition.start();
+    }
+
+
+  </script>
+</body>
+
+</html>
